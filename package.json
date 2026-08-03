@@ -1,0 +1,32 @@
+{
+  "name": "agent-wrapped",
+  "version": "0.1.0",
+  "description": "Your Claude Code year in review, as a shareable PNG. Runs entirely on your machine.",
+  "type": "module",
+  "bin": {
+    "agent-wrapped": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "assets"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "bun src/cli.ts",
+    "check": "bun src/check.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "bun build src/cli.ts --outfile dist/cli.js --target node --format esm --external @resvg/resvg-js --external ccusage"
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "ccusage": "^20.0.0",
+    "satori": "^0.26.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
+  }
+}
