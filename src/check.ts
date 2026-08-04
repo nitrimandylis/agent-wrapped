@@ -1,9 +1,14 @@
 /**
  * Smallest runnable check: parse real transcripts and assert the numbers are
- * sane, then print them next to ccusage so token counts can be eyeballed.
+ * sane, then render every layout to make sure nothing falls off the bottom.
  * Run with `bun run check`.
  */
+import { measureHeight } from "./card.ts";
+import { CANVASES, DETAILS, LAYOUTS } from "./layouts.ts";
 import { collect, peakHour } from "./parse.ts";
+import { quips } from "./quips.ts";
+import { score } from "./score.ts";
+import { tierFor } from "./themes.ts";
 
 const started = Date.now();
 const s = await collect(30);
@@ -70,4 +75,42 @@ if (m.afterMidnight > userMsgs) fail(`after-midnight ${m.afterMidnight} exceeds 
 if (m.busiestDay.count > userMsgs) fail("busiest day exceeds total messages");
 if (m.longestSessionMs > s.activeMs) fail("longest session exceeds total active time");
 
-console.log("\nall invariants hold");
+console.log("\nparse invariants hold");
+
+/**
+ * satori clips silently, so a block that doesn't fit just vanishes and the card
+ * looks fine. Rendering each combo without a fixed height says what it wanted.
+ */
+const scored = score(s);
+const lines = quips(s, 5);
+const base = {
+  stats: s,
+  scored,
+  palette: tierFor(scored.total),
+  handle: "check",
+  styleName: "Long-Session Specialist",
+  // Worst realistic case for wrapping, since a short blurb can only fit better.
+  blurb: "ships terminal tools at 2am and calls the resulting mess a design system",
+  quips: lines,
+  cost: 1204,
+  trend: -6,
+};
+
+console.log("");
+let overflowed = 0;
+
+for (const layout of LAYOUTS) {
+  for (const detail of DETAILS) {
+    const wanted = await measureHeight({ ...base, layout, detail });
+    const limit = CANVASES[layout].height;
+    const ok = wanted <= limit;
+    if (!ok) overflowed++;
+    console.log(
+      `  ${`${layout}/${detail}`.padEnd(14)} ${String(Math.ceil(wanted)).padStart(5)} ${ok ? "<=" : " >"} ${limit}  ${ok ? "ok" : "OVERFLOW"}`,
+    );
+  }
+}
+
+if (overflowed > 0) fail(`${overflowed} layout(s) overflow — drop a block or raise the canvas`);
+
+console.log("\nall 9 layouts fit");

@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import type { Stats } from "./parse.ts";
 import { peakHour } from "./parse.ts";
+import type { Quip } from "./quips.ts";
 import type { Scored } from "./score.ts";
 
 export type Blurb = { styleName: string; text: string; source: "claude" | "template" };
@@ -71,16 +72,22 @@ function promptSample(prompts: string[], limit: number): string[] {
     .map((p) => p.slice(0, 2000));
 }
 
-function buildPrompt(stats: Stats, scored: Scored, deep: boolean): string {
+function buildPrompt(stats: Stats, scored: Scored, quips: Quip[], deep: boolean): string {
   const peak = String(peakHour(stats.hourly)).padStart(2, "0");
   const parts = [
     "You are writing two lines for a shareable stats card about a developer's use of Claude Code.",
+    "The card is meant to be funny. Dry and specific, never zany.",
     "",
     "STATS",
-    `- score ${scored.total}/100, strongest axis ${scored.axes.slice().sort((a, b) => b.points - a.points)[0].label}`,
-    `- ${stats.sessions} sessions across ${stats.projects.length} projects in ${stats.days} days`,
+    `- score ${scored.total}/100, archetype ${scored.archetype} (${scored.defining[0].label} + ${scored.defining[1].label})`,
+    `- ${stats.interactive} interactive sessions, ${stats.headless} headless runs, ${stats.projects.length} projects, ${stats.days} days`,
     `- peak hour ${peak}:00, ${stats.activeDays}/${stats.days} active days`,
     `- ${stats.agentsTotal} subagents spawned`,
+    "",
+    // Counts and single words, computed locally. No phrase the developer typed
+    // appears here, so this stays inside the same rule --deep gates.
+    "HABITS (already computed, do not repeat these verbatim)",
+    ...quips.map((q) => `- ${q.line}`),
     "",
     "SESSION TITLES (Claude's own summaries of what was worked on)",
     ...topicSample(stats.titlesByProject, 60).map((t) => `- ${t}`),
@@ -99,10 +106,12 @@ function buildPrompt(stats: Stats, scored: Scored, deep: boolean): string {
     "RULES",
     "- Never reproduce more than 3 consecutive words from any prompt sample. Project, repo and tool names are exempt.",
     "- This card gets posted publicly. Nothing private, personal, or identifying about anyone other than the developer.",
-    "- Be specific and dry. Name real projects. No praise, no exclamation marks, no emoji.",
-    "- Do not restate numbers already printed on the card: session count, day count, hours, tokens, peak hour.",
-    "- Say what they actually work on, not how much. Two contrasting projects beats one.",
-    "- BLURB must be under 110 characters and must be lowercase except for proper nouns.",
+    "- Funny means a true observation stated flatly. The joke is the fact, not the wording.",
+    "- Be specific. Name real projects. Two contrasting projects beats one.",
+    "- No praise, no exclamation marks, no emoji, no wordplay on 'AI'.",
+    "- Do not restate any number already on the card: sessions, days, hours, tokens, peak hour, or anything under HABITS.",
+    "- Say what they actually work on, not how much.",
+    "- BLURB must be under 110 characters and lowercase except for proper nouns.",
     "",
     "Reply with exactly two lines and nothing else:",
     "STYLE: <2-4 word title, Title Case>",
@@ -116,10 +125,11 @@ function buildPrompt(stats: Stats, scored: Scored, deep: boolean): string {
 export async function viaClaude(
   stats: Stats,
   scored: Scored,
+  quips: Quip[],
   deep: boolean,
   timeoutMs = 120000,
 ): Promise<Blurb | null> {
-  const prompt = buildPrompt(stats, scored, deep);
+  const prompt = buildPrompt(stats, scored, quips, deep);
 
   const output = await new Promise<string>((resolve) => {
     const child = spawn("claude", ["-p", prompt], { stdio: ["ignore", "pipe", "ignore"] });
