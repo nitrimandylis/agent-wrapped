@@ -6,3 +6,7 @@ dist/
 # Generated cards, including the contact sheet from `--all`.
 *.png
 *.svg
+
+# ...except the example card shown in the README.
+!docs/*.png
+!docs/*.svg

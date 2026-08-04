@@ -21,6 +21,10 @@
 
 ![local](https://img.shields.io/badge/runs-100%25_local-f5871f?style=flat-square&labelColor=111111) ![prompts](https://img.shields.io/badge/your_prompts_uploaded-0-a06cff?style=flat-square&labelColor=111111) ![launchd](https://img.shields.io/badge/things_it_installs_behind_you-0-f5871f?style=flat-square&labelColor=111111) ![node](https://img.shields.io/badge/node->=20-a06cff?style=flat-square&labelColor=111111) ![license](https://img.shields.io/badge/license-MIT-f5871f?style=flat-square&labelColor=111111)
 
+<img src="https://raw.githubusercontent.com/nitrimandylis/agent-wrapped/main/docs/card-square-full.png" alt="An agent-wrapped card scoring 88/100, archetype THE MACHINE, with five axis bars, an hourly activity chart, and panels for tokens, sessions, subagents and API-rate cost." width="760">
+
+*a real card — `--layout square --detail full --theme magenta`*
+
 </div>
 
 ---
@@ -102,7 +106,7 @@ unavailable, and every line of it is in this repo.
 |---|---|---|
 | 01 | **`--layout`** | `wide` 1200×675 for a feed, `square` 1200×1200, `story` 1080×1920 — three aspect ratios that crop badly nowhere |
 | 02 | **`--detail`** | `min` is score and one line, `std` adds quips and stats, `full` adds every axis, model split and tool counts |
-| 03 | **`--format`** | `png`, `svg`, or `both`. the svg is glyph paths, so it renders the same on a machine with neither font installed |
+| 03 | **`--format`** | `png`, `svg`, or `both` — [same card as SVG](https://raw.githubusercontent.com/nitrimandylis/agent-wrapped/main/docs/card-square-full.svg). glyph paths, so it renders the same on a machine with neither font installed |
 | 04 | **`--all`** | writes all nine combinations to a directory, for when you cannot decide |
 | 05 | **`--theme`** | six built-in accents, cold to hot, picked by your score — or hand it a `palette.toml` |
 | 06 | **`--json`** | the whole breakdown as machine-readable output, writes no files |
