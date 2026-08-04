@@ -136,12 +136,24 @@ const RULES: Rule[] = [
     say: () => "not one message at the weekend",
   },
   {
-    key: "peak",
-    when: () => true,
-    say: (s) => {
-      const hour = s.hourly.indexOf(Math.max(...s.hourly));
-      return `you do your best work around ${String(hour).padStart(2, "0")}:00`;
+    // Deliberately not the peak hour: the clock block already prints that, and
+    // a quip repeating the panel underneath it reads as padding.
+    key: "day-range",
+    when: (s) => {
+      const active = s.hourly.map((v, h) => (v > 0 ? h : -1)).filter((h) => h >= 0);
+      return active.length >= 2 && active[0] !== active[active.length - 1];
     },
+    say: (s) => {
+      const active = s.hourly.map((v, h) => (v > 0 ? h : -1)).filter((h) => h >= 0);
+      const hh = (h: number) => `${String(h).padStart(2, "0")}:00`;
+      return `your day runs ${hh(active[0])} to ${hh(active[active.length - 1])}`;
+    },
+  },
+  {
+    // Last resort, always true, and the one number no panel on any layout shows.
+    key: "messages",
+    when: (s) => s.weekdayMsgs + s.weekendMsgs > 0,
+    say: (s) => `you and Claude traded ${n(s.weekdayMsgs + s.weekendMsgs)} messages`,
   },
 ];
 
