@@ -13,7 +13,12 @@ export type Stats = {
   days: number;
   tokens: number;
   models: Record<string, number>;
+  /** Every transcript file with activity in the window. interactive + headless. */
   sessions: number;
+  /** Sessions you actually sat in. See isInteractive. */
+  interactive: number;
+  /** One-shot `claude -p` invocations: hooks, scripts, other tools calling Claude. */
+  headless: number;
   activeMs: number;
   activeDays: number;
   hourly: number[];
@@ -27,7 +32,54 @@ export type Stats = {
   /** Grouped so one busy project can't swamp the blurb's sense of what you do. */
   titlesByProject: Record<string, string[]>;
   prompts: string[];
+  /** Specific, funny, and true. The quips and the blurb both read from here. */
+  mined: Mined;
 };
+
+/**
+ * Facts too specific for the score but exactly what makes a card memorable.
+ * Everything here is a count or a single common word: never a phrase, so none
+ * of it can reproduce something you typed.
+ */
+export type Mined = {
+  afterMidnight: number;
+  busiestDay: { date: string; count: number };
+  longestSessionMs: number;
+  longestStreak: number;
+  tools: Record<string, number>;
+  bashVerbs: Record<string, number>;
+  filesTouched: number;
+  interruptions: number;
+  pushback: Record<string, number>;
+  longestPrompt: number;
+  topWord: string;
+  topWordCount: number;
+};
+
+/** Common enough to drown out anything interesting in the "most typed" count. */
+const STOPWORDS = new Set([
+  "that", "this", "with", "from", "have", "what", "when", "then", "they", "them",
+  "your", "just", "like", "make", "want", "need", "does", "into", "also", "some",
+  "only", "same", "than", "there", "these", "those", "would", "could", "should",
+  "which", "where", "about", "after", "before", "being", "doesn", "didn", "don",
+  "it's", "i'm", "that's", "you", "the", "and", "for", "are", "but", "not", "can",
+  "its", "was", "one", "all", "now", "how", "why", "let", "get", "put", "use",
+]);
+
+/** Words that mean "that wasn't it". Counted, never quoted. */
+const PUSHBACK = ["no", "wrong", "actually", "still", "sorry", "again"];
+
+/**
+ * Entry types written only when someone is driving: changing mode, answering a
+ * permission prompt. `queue-operation` looks like a candidate and is not, it
+ * appears in 96% of transcripts including headless ones.
+ * ponytail: a one-turn interactive session where you never touched mode reads as
+ * headless. Add a better signal if Claude Code ever writes one.
+ */
+const INTERACTIVE_TYPES = new Set(["mode", "permission-mode"]);
+
+/** Past this, it was pasted, not typed, and its words are not your vocabulary. */
+const TYPED_MAX_CHARS = 1000;
 
 /** One session's contribution, before it gets folded into the totals. */
 type SessionScan = {
@@ -39,10 +91,57 @@ type SessionScan = {
   models: Record<string, number>;
   titles: string[];
   prompts: string[];
+  /** Saw an entry type only a real session produces. */
+  interactiveMarker: boolean;
+  interruptions: number;
 };
 
 function emptyScan(): SessionScan {
-  return { timestamps: [], userTimestamps: [], tokens: 0, models: {}, titles: [], prompts: [] };
+  return {
+    timestamps: [],
+    userTimestamps: [],
+    tokens: 0,
+    models: {},
+    titles: [],
+    prompts: [],
+    interactiveMarker: false,
+    interruptions: 0,
+  };
+}
+
+/**
+ * Mined facts accumulate across every file at once, so unlike SessionScan they
+ * live in one object for the whole run.
+ */
+type Miner = {
+  tools: Record<string, number>;
+  bashVerbs: Record<string, number>;
+  files: Set<string>;
+  interruptions: number;
+  pushback: Record<string, number>;
+  longestPrompt: number;
+  words: Map<string, number>;
+};
+
+function emptyMiner(): Miner {
+  return {
+    tools: {},
+    bashVerbs: {},
+    files: new Set(),
+    interruptions: 0,
+    pushback: Object.fromEntries(PUSHBACK.map((w) => [w, 0])),
+    longestPrompt: 0,
+    words: new Map(),
+  };
+}
+
+/**
+ * A session counts as interactive if it carries a marker only a live session
+ * produces, or if you typed more than once. Everything else is a headless
+ * `claude -p`: a hook, a script, another tool calling Claude on your behalf.
+ */
+function isInteractive(scan: SessionScan): boolean {
+  return scan.interactiveMarker || scan.prompts.length >= 2;
 }
 
 async function listDir(path: string): Promise<string[]> {
@@ -62,6 +161,61 @@ async function isDir(path: string): Promise<boolean> {
 }
 
 /**
+ * User content is usually a plain string, but a message sent with an attachment
+ * arrives as blocks. Tool results arrive as blocks too and are not text you typed.
+ */
+function userText(content: unknown): string {
+  if (typeof content === "string") return content;
+  if (!Array.isArray(content)) return "";
+  return content
+    .filter((b: any) => b && b.type === "text" && typeof b.text === "string")
+    .map((b: any) => b.text)
+    .join(" ");
+}
+
+/** One tokenisation pass feeds both the pushback counts and the top word. */
+function minePrompt(text: string, mine: Miner): void {
+  // Kept uncapped: the biggest thing you ever sent is a fact worth printing.
+  if (text.length > mine.longestPrompt) mine.longestPrompt = text.length;
+
+  // Word counts are capped, because a pasted stack trace would otherwise decide
+  // that your most-used word is "type".
+  if (text.length > TYPED_MAX_CHARS) return;
+
+  const words = text.toLowerCase().match(/[a-z']+/g);
+  if (!words) return;
+
+  for (const word of words) {
+    if (Object.hasOwn(mine.pushback, word)) mine.pushback[word]++;
+    if (word.length >= 4 && !STOPWORDS.has(word)) {
+      mine.words.set(word, (mine.words.get(word) ?? 0) + 1);
+    }
+  }
+}
+
+/** Tool calls live as blocks inside an assistant message's content array. */
+function mineTools(content: unknown, mine: Miner): void {
+  if (!Array.isArray(content)) return;
+
+  for (const block of content as any[]) {
+    if (!block || block.type !== "tool_use") continue;
+
+    const name = typeof block.name === "string" ? block.name : "unknown";
+    mine.tools[name] = (mine.tools[name] ?? 0) + 1;
+
+    const input = block.input ?? {};
+    if (typeof input.file_path === "string") mine.files.add(input.file_path);
+
+    if (name === "Bash" && typeof input.command === "string") {
+      // First word only. `git`, `rg`, `bun` is the interesting part; the rest of
+      // the command line is yours and does not belong in a count.
+      const verb = input.command.trim().split(/\s+/)[0];
+      if (verb) mine.bashVerbs[verb] = (mine.bashVerbs[verb] ?? 0) + 1;
+    }
+  }
+}
+
+/**
  * Read one .jsonl transcript line by line. These run to 14MB, and there are
  * ~11k of them, so nothing here may hold a whole file in memory.
  */
@@ -70,6 +224,7 @@ async function scanTranscript(
   since: number,
   into: SessionScan,
   seen: Set<string>,
+  mine: Miner,
 ): Promise<void> {
   const rl = createInterface({
     input: createReadStream(path, { encoding: "utf8" }),
@@ -92,6 +247,13 @@ async function scanTranscript(
       continue;
     }
 
+    // These carry no timestamp either, and they are how a live session is told
+    // apart from a headless one.
+    if (INTERACTIVE_TYPES.has(entry.type)) {
+      into.interactiveMarker = true;
+      continue;
+    }
+
     const ts = Date.parse(entry.timestamp ?? "");
     if (!Number.isFinite(ts) || ts < since) continue;
 
@@ -99,36 +261,68 @@ async function scanTranscript(
       into.timestamps.push(ts);
     }
 
-    if (entry.type === "user" && typeof entry.message?.content === "string") {
-      const text = entry.message.content.trim();
-      // Slash commands and injected tool-result echoes aren't things you typed.
-      if (text && !text.startsWith("<") && !text.startsWith("/")) {
+    if (entry.type === "user") {
+      const text = userText(entry.message?.content).trim();
+      if (text.startsWith("[Request interrupted")) {
+        into.interruptions++;
+      } else if (text && !text.startsWith("<") && !text.startsWith("/")) {
+        // Slash commands and injected tool-result echoes aren't things you typed.
         into.userTimestamps.push(ts);
         into.prompts.push(text);
       }
     }
 
-    const usage = entry.message?.usage;
-    if (entry.type === "assistant" && usage) {
+    if (entry.type === "assistant") {
       // Claude Code rewrites the same assistant turn into every session file that
       // resumes or forks from it. ccusage dedupes on request id; without this the
-      // total comes out roughly double.
+      // totals come out roughly double. Tool counts double the same way, so the
+      // check guards the whole entry, not just the token accounting.
       const key = `${entry.message?.id ?? ""}:${entry.requestId ?? ""}`;
       if (key !== ":" && seen.has(key)) continue;
       if (key !== ":") seen.add(key);
 
-      const model = entry.message.model ?? "unknown";
+      const model = entry.message?.model ?? "unknown";
       if (model === "<synthetic>") continue; // local error placeholders, not real spend
 
-      const n =
-        (usage.input_tokens ?? 0) +
-        (usage.output_tokens ?? 0) +
-        (usage.cache_creation_input_tokens ?? 0) +
-        (usage.cache_read_input_tokens ?? 0);
-      into.tokens += n;
-      into.models[model] = (into.models[model] ?? 0) + n;
+      mineTools(entry.message?.content, mine);
+
+      const usage = entry.message?.usage;
+      if (usage) {
+        const n =
+          (usage.input_tokens ?? 0) +
+          (usage.output_tokens ?? 0) +
+          (usage.cache_creation_input_tokens ?? 0) +
+          (usage.cache_read_input_tokens ?? 0);
+        into.tokens += n;
+        into.models[model] = (into.models[model] ?? 0) + n;
+      }
     }
   }
+}
+
+/** Sortable local day key, so consecutive days can be found by walking the list. */
+function dayKey(d: Date): string {
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${month}-${day}`;
+}
+
+/** Longest run of consecutive calendar days you showed up. */
+function longestStreakOf(dayKeys: string[]): number {
+  if (dayKeys.length === 0) return 0;
+
+  const sorted = [...dayKeys].sort();
+  let longest = 1;
+  let run = 1;
+
+  for (let i = 1; i < sorted.length; i++) {
+    const previous = new Date(`${sorted[i - 1]}T00:00:00`);
+    previous.setDate(previous.getDate() + 1);
+    if (dayKey(previous) === sorted[i]) run++;
+    else run = 1;
+    if (run > longest) longest = run;
+  }
+  return longest;
 }
 
 /** Sum the gaps between consecutive messages, ignoring the ones you spent away. */
@@ -157,10 +351,15 @@ export async function collect(windowDays = 30, root?: string): Promise<Stats> {
   const titles: string[] = [];
   const titlesByProject: Record<string, string[]> = {};
   const prompts: string[] = [];
+  const msgsByDay = new Map<string, number>();
+  const mine = emptyMiner();
 
   let tokens = 0;
   let sessions = 0;
+  let interactive = 0;
   let activeMs = 0;
+  let longestSessionMs = 0;
+  let afterMidnight = 0;
   let weekdayMsgs = 0;
   let weekendMsgs = 0;
   let agentsTotal = 0;
@@ -178,7 +377,7 @@ export async function collect(windowDays = 30, root?: string): Promise<Stats> {
 
       const sessionId = entry.slice(0, -".jsonl".length);
       const scan = emptyScan();
-      await scanTranscript(join(projectPath, entry), sinceMs, scan, seen);
+      await scanTranscript(join(projectPath, entry), sinceMs, scan, seen, mine);
 
       // Subagent transcripts live beside the session, one file per agent.
       const subagentDir = join(projectPath, sessionId, "subagents");
@@ -198,22 +397,36 @@ export async function collect(windowDays = 30, root?: string): Promise<Stats> {
         if (!file.endsWith(".jsonl")) continue;
         agentsHere++;
         // Subagent tokens are real spend, so they belong in the total.
-        await scanTranscript(join(subagentDir, file), sinceMs, scan, seen);
+        await scanTranscript(join(subagentDir, file), sinceMs, scan, seen, mine);
       }
 
       if (scan.timestamps.length === 0) continue; // nothing inside the window
 
       sessions++;
+
+      // Vocabulary is only mined from sessions you sat in. A headless run's
+      // prompts were written by whatever script called Claude, not by you, and
+      // one chatty automation would otherwise decide what your top word is.
+      if (isInteractive(scan)) {
+        interactive++;
+        mine.interruptions += scan.interruptions;
+        for (const text of scan.prompts) minePrompt(text, mine);
+        prompts.push(...scan.prompts);
+      }
+
       agentsTotal += agentsHere;
       agentsPerSessionSum += 1 + agentsHere;
       tokens += scan.tokens;
-      activeMs += activeMsOf(scan.timestamps);
+
+      const sessionMs = activeMsOf(scan.timestamps);
+      activeMs += sessionMs;
+      if (sessionMs > longestSessionMs) longestSessionMs = sessionMs;
+
       projects.add(projectDir);
       titles.push(...scan.titles);
       if (scan.titles.length > 0) {
         (titlesByProject[projectDir] ??= []).push(...scan.titles);
       }
-      prompts.push(...scan.prompts);
 
       for (const [model, n] of Object.entries(scan.models)) {
         tokensByModel[model] = (tokensByModel[model] ?? 0) + n;
@@ -222,12 +435,32 @@ export async function collect(windowDays = 30, root?: string): Promise<Stats> {
       // "When you code" means when you typed, not when Claude replied.
       for (const ts of scan.userTimestamps) {
         const d = new Date(ts);
-        hourly[d.getHours()]++;
-        activeDays.add(d.toDateString());
+        const hour = d.getHours();
+        const key = dayKey(d);
+
+        hourly[hour]++;
+        activeDays.add(key);
+        msgsByDay.set(key, (msgsByDay.get(key) ?? 0) + 1);
+        if (hour < 5) afterMidnight++;
+
         const day = d.getDay();
         if (day === 0 || day === 6) weekendMsgs++;
         else weekdayMsgs++;
       }
+    }
+  }
+
+  let busiestDay = { date: "", count: 0 };
+  for (const [date, count] of msgsByDay) {
+    if (count > busiestDay.count) busiestDay = { date, count };
+  }
+
+  let topWord = "";
+  let topWordCount = 0;
+  for (const [word, count] of mine.words) {
+    if (count > topWordCount) {
+      topWord = word;
+      topWordCount = count;
     }
   }
 
@@ -238,6 +471,8 @@ export async function collect(windowDays = 30, root?: string): Promise<Stats> {
     tokens,
     models: tokensByModel,
     sessions,
+    interactive,
+    headless: sessions - interactive,
     activeMs,
     activeDays: activeDays.size,
     hourly,
@@ -250,6 +485,20 @@ export async function collect(windowDays = 30, root?: string): Promise<Stats> {
     titles,
     titlesByProject,
     prompts,
+    mined: {
+      afterMidnight,
+      busiestDay,
+      longestSessionMs,
+      longestStreak: longestStreakOf([...activeDays]),
+      tools: mine.tools,
+      bashVerbs: mine.bashVerbs,
+      filesTouched: mine.files.size,
+      interruptions: mine.interruptions,
+      pushback: mine.pushback,
+      longestPrompt: mine.longestPrompt,
+      topWord,
+      topWordCount,
+    },
   };
 }
 

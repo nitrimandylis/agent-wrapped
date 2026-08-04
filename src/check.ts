@@ -15,7 +15,7 @@ const fmt = (n: number) =>
 console.log(`parsed in ${elapsed}s`);
 console.log(`window       ${s.since.toISOString().slice(0, 10)} .. ${s.until.toISOString().slice(0, 10)}`);
 console.log(`tokens       ${fmt(s.tokens)}`);
-console.log(`sessions     ${s.sessions}`);
+console.log(`sessions     ${s.sessions} (${s.interactive} interactive, ${s.headless} headless)`);
 console.log(`hours        ${(s.activeMs / 3.6e6).toFixed(0)}h`);
 console.log(`active days  ${s.activeDays}/${s.days}`);
 console.log(`projects     ${s.projects.length}`);
@@ -27,19 +27,47 @@ console.log(`titles       ${s.titles.length}`);
 console.log(`prompts      ${s.prompts.length}`);
 console.log(`models       ${Object.entries(s.models).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k}=${fmt(v)}`).join("  ")}`);
 
+const m = s.mined;
+const top = (r: Record<string, number>, n: number) =>
+  Object.entries(r).sort((a, b) => b[1] - a[1]).slice(0, n).map(([k, v]) => `${k}:${v}`).join("  ") || "none";
+
+console.log("");
+console.log(`streak       ${m.longestStreak} days`);
+console.log(`busiest day  ${m.busiestDay.date} (${m.busiestDay.count} messages)`);
+console.log(`longest sesh ${(m.longestSessionMs / 3.6e6).toFixed(1)}h`);
+console.log(`after 00:00  ${m.afterMidnight} messages`);
+console.log(`tools        ${top(m.tools, 5)}`);
+console.log(`bash verbs   ${top(m.bashVerbs, 5)}`);
+console.log(`files        ${m.filesTouched} unique paths`);
+console.log(`interrupts   ${m.interruptions}`);
+console.log(`pushback     ${top(m.pushback, 6)}`);
+console.log(`longest ask  ${m.longestPrompt} chars`);
+console.log(`top word     "${m.topWord}" x${m.topWordCount}`);
+
 // These are the invariants the card depends on. If any trips, the card lies.
 const fail = (msg: string) => {
   console.error(`FAIL: ${msg}`);
   process.exit(1);
 };
 
+const userMsgs = s.weekdayMsgs + s.weekendMsgs;
+
 if (s.sessions === 0) fail("no sessions found in window");
 if (s.tokens <= 0) fail("no tokens counted");
 if (s.activeDays > s.days) fail(`active days ${s.activeDays} exceeds window ${s.days}`);
 if (s.avgAgents < 1) fail(`avgAgents ${s.avgAgents} below 1 (every session has at least itself)`);
-if (s.hourly.reduce((a, b) => a + b, 0) !== s.weekdayMsgs + s.weekendMsgs) {
+if (s.hourly.reduce((a, b) => a + b, 0) !== userMsgs) {
   fail("hourly histogram and weekday/weekend split disagree on message count");
 }
 if (s.activeMs / 3.6e6 > s.days * 24) fail("active hours exceed wall-clock hours in window");
+if (s.interactive + s.headless !== s.sessions) {
+  fail(`interactive ${s.interactive} + headless ${s.headless} != sessions ${s.sessions}`);
+}
+if (m.longestStreak > s.activeDays) {
+  fail(`streak ${m.longestStreak} exceeds active days ${s.activeDays}`);
+}
+if (m.afterMidnight > userMsgs) fail(`after-midnight ${m.afterMidnight} exceeds messages ${userMsgs}`);
+if (m.busiestDay.count > userMsgs) fail("busiest day exceeds total messages");
+if (m.longestSessionMs > s.activeMs) fail("longest session exceeds total active time");
 
 console.log("\nall invariants hold");
