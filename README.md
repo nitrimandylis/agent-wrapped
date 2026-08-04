@@ -102,7 +102,7 @@ unavailable, and every line of it is in this repo.
 
 ## 🎴 The card
 
-| | flag | what it actually does |
+| | &nbsp;&nbsp;&nbsp;flag&nbsp;&nbsp;&nbsp; | what it actually does |
 |---|---|---|
 | 01 | **`--layout`** | `wide` 1200×675 for a feed, `square` 1200×1200, `story` 1080×1920 — three aspect ratios that crop badly nowhere |
 | 02 | **`--detail`** | `min` is score and one line, `std` adds quips and stats, `full` adds every axis, model split and tool counts |
