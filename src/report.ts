@@ -2,6 +2,7 @@ import type { Stats } from "./parse.ts";
 import { peakHour } from "./parse.ts";
 import type { Quip } from "./quips.ts";
 import { fmtTokens, valueForPoints, type Scored } from "./score.ts";
+import type { Handle } from "./handle.ts";
 import type { Snapshot } from "./history.ts";
 
 export type ReportInput = {
@@ -14,6 +15,7 @@ export type ReportInput = {
   cost: number | null;
   previous: Snapshot | null;
   paletteName: string;
+  handle: Handle;
 };
 
 const num = (n: number) => Math.round(n).toLocaleString("en-US");
@@ -63,6 +65,8 @@ export function report(input: ReportInput): string {
   line(`  time       ${Math.round(stats.activeMs / 3.6e6)}h across ${stats.activeDays}/${stats.days} days`);
   line(`  peak       ${String(peakHour(stats.hourly)).padStart(2, "0")}:00`);
   line();
+  const origin = { flag: "--handle", github: "your GitHub login", system: "your system username" }[input.handle.source];
+  line(`  name       ${input.handle.name}  (${origin})`);
   line(`  style      ${input.styleName}`);
   line(`  blurb      ${input.blurb}`);
   line(`  source     ${input.blurbSource === "claude" ? "your local claude" : "template (claude unavailable)"}`);
@@ -117,6 +121,7 @@ export function asJson(input: ReportInput) {
     agentsTotal: stats.agentsTotal,
     agentTypes: stats.agentTypes,
     mined: stats.mined,
+    handle: { name: input.handle.name, source: input.handle.source },
     styleName: input.styleName,
     blurb: input.blurb,
     blurbSource: input.blurbSource,

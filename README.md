@@ -148,8 +148,13 @@ bun install
 bun src/cli.ts --layout square --detail full
 ```
 
-It prints the score, the axes, and the blurb, then asks before writing the file. Pass `--yes` if you
-trust it, `--no-history` if you would rather it left nothing behind at all.
+It prints the score, the axes, the name it is about to put on the card, and the blurb, then asks before
+writing the file. Pass `--yes` if you trust it, `--no-history` if you would rather it left nothing behind
+at all.
+
+The name defaults to your GitHub login, read out of `gh`'s own config file on disk rather than from the
+GitHub API — a lookup that phoned home would make the sentence above this one false. With no `gh`, it
+falls back to your system username. `--handle <name>` overrides both.
 
 ## 🔩 Under the hood
 

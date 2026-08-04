@@ -44,6 +44,10 @@ machine with neither font installed.
 Other flags: `--days <n>`, `--theme <name|palette.toml>`, `--handle <name>`, `--out <path>`,
 `--no-history`, `--deep`.
 
+The name on the card defaults to the GitHub login in `~/.config/gh/hosts.yml`, then the system username.
+The review gate prints it and says which one it used, so check there before telling the user what their
+card will say.
+
 ## Things that will bite you
 
 - **It spawns `claude -p` as a subprocess, with a 120-second timeout.** Running this from inside a

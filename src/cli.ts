@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 import { mkdir, writeFile } from "node:fs/promises";
-import { userInfo } from "node:os";
 import { extname, join } from "node:path";
 import { createInterface } from "node:readline";
 import { renderPng, renderSvg } from "./card.ts";
 import { spend } from "./ccusage.ts";
 import { templated, viaClaude, type Blurb } from "./blurb.ts";
+import { resolveHandle } from "./handle.ts";
 import { historyPath, previous, readHistory, snapshot, writeHistory } from "./history.ts";
 import { DETAILS, LAYOUTS, type DetailName, type LayoutName } from "./layouts.ts";
 import { collect } from "./parse.ts";
@@ -30,7 +30,8 @@ options
                     or a path to a swatch-style palette.toml
                     (default: picked by your score)
   --days <n>        window size, default 30 (Claude Code keeps about 30)
-  --handle <name>   name on the card, default your username
+  --handle <name>   name on the card, default your GitHub login when gh is
+                    set up, otherwise your system username
   --out <path>      output file, or directory with --all
   --json            print the full stats and score breakdown, write nothing
   --no-history      skip the monthly snapshot in ~/.agent-wrapped
@@ -87,7 +88,7 @@ async function main() {
   const detail = pick<DetailName>("detail", DETAILS, "std");
   const format = pick("format", ["png", "svg", "both"] as const, "png");
   const deep = flag("deep");
-  const handle = arg("handle") ?? userInfo().username;
+  const handle = await resolveHandle(arg("handle"));
 
   process.stderr.write("reading ~/.claude/projects ...\n");
   const stats = await collect(days);
@@ -120,6 +121,7 @@ async function main() {
     cost: money?.cost ?? null,
     previous: last,
     paletteName: palette.name,
+    handle,
   };
 
   if (flag("json")) {
@@ -139,7 +141,7 @@ async function main() {
     stats,
     scored,
     palette,
-    handle,
+    handle: handle.name,
     styleName: blurb.styleName,
     blurb: blurb.text,
     quips: lines,
