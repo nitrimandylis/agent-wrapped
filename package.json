@@ -10,7 +10,22 @@
     "dist",
     "assets"
   ],
+  "keywords": [
+    "claude",
+    "claude-code",
+    "wrapped",
+    "stats",
+    "cli",
+    "usage"
+  ],
+  "author": "nitrimandylis",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nitrimandylis/agent-wrapped.git"
+  },
+  "homepage": "https://github.com/nitrimandylis/agent-wrapped#readme",
+  "bugs": "https://github.com/nitrimandylis/agent-wrapped/issues",
   "engines": {
     "node": ">=20"
   },
@@ -18,7 +33,8 @@
     "dev": "bun src/cli.ts",
     "check": "bun src/check.ts",
     "typecheck": "tsc --noEmit",
-    "build": "bun build src/cli.ts --outfile dist/cli.js --target node --format esm --external @resvg/resvg-js --external ccusage"
+    "build": "bun build src/cli.ts --outfile dist/cli.js --target node --format esm --external @resvg/resvg-js --external ccusage",
+    "prepack": "bun run build"
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",
