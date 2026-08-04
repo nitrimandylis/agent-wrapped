@@ -34,7 +34,8 @@
     "check": "bun src/check.ts",
     "typecheck": "tsc --noEmit",
     "build": "bun build src/cli.ts --outfile dist/cli.js --target node --format esm --external @resvg/resvg-js --external ccusage",
-    "prepack": "bun run build"
+    "prepack": "bun run build",
+    "skill": "[ -d ~/.claude/skills ] && cp -R agent-wrapped-cli ~/.claude/skills/ || true"
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",
