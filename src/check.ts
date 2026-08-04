@@ -97,6 +97,16 @@ const base = {
   trend: -6,
 };
 
+// A first-week user trips none of the interesting thresholds, and an empty quips
+// row is a visible hole in every std and full layout.
+const thin = { ...s, weekdayMsgs: 4, weekendMsgs: 0, headless: 0, interactive: 3,
+  models: { "claude-sonnet-5": 1 }, agentTypes: {},
+  mined: { ...s.mined, afterMidnight: 0, interruptions: 0, longestStreak: 1,
+    filesTouched: 2, longestPrompt: 40, topWordCount: 1, longestSessionMs: 6e5,
+    busiestDay: { date: "2026-08-01", count: 4 }, tools: {}, bashVerbs: {},
+    pushback: { no: 0, wrong: 0, actually: 0, still: 0, sorry: 0, again: 0 } } };
+if (quips(thin, 3).length === 0) fail("a low-activity user would get an empty quips row");
+
 // A block no manifest names renders nowhere and nobody notices it is missing.
 const used = new Set(Object.values(MANIFESTS).flat(2));
 const orphans = Object.keys(BLOCKS).filter((name) => !used.has(name));

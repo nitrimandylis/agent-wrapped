@@ -90,17 +90,17 @@ const RULES: Rule[] = [
   },
   {
     key: "files",
-    when: (s) => s.mined.filesTouched >= 100,
+    when: (s) => s.mined.filesTouched >= 25,
     say: (s) => `touched ${n(s.mined.filesTouched)} different files`,
   },
   {
     key: "longest-session",
-    when: (s) => s.mined.longestSessionMs >= 2 * 3.6e6,
+    when: (s) => s.mined.longestSessionMs >= 1 * 3.6e6,
     say: (s) => `longest unbroken session: ${hoursMinutes(s.mined.longestSessionMs)}`,
   },
   {
     key: "top-word",
-    when: (s) => s.mined.topWordCount >= 50,
+    when: (s) => s.mined.topWordCount >= 15,
     say: (s) => `most typed word: "${s.mined.topWord}", ${n(s.mined.topWordCount)} times`,
   },
   {
@@ -121,6 +121,27 @@ const RULES: Rule[] = [
     key: "models",
     when: (s) => Object.keys(s.models).length >= 3,
     say: (s) => `spread across ${Object.keys(s.models).length} different models`,
+  },
+  {
+    key: "top-tool",
+    when: (s) => (top(s.mined.tools)?.count ?? 0) >= 10,
+    say: (s) => {
+      const tool = top(s.mined.tools)!;
+      return `${tool.name} was your most used tool, ${n(tool.count)} calls`;
+    },
+  },
+  {
+    key: "no-weekends",
+    when: (s) => s.weekendMsgs === 0 && s.weekdayMsgs > 0,
+    say: () => "not one message at the weekend",
+  },
+  {
+    key: "peak",
+    when: () => true,
+    say: (s) => {
+      const hour = s.hourly.indexOf(Math.max(...s.hourly));
+      return `you do your best work around ${String(hour).padStart(2, "0")}:00`;
+    },
   },
 ];
 
