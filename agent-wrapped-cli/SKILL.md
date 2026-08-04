@@ -13,7 +13,7 @@ because `@resvg/resvg-js` is a native addon with per-platform prebuilds that `bu
 cannot bundle. In this repo, run it with `bun src/cli.ts`.
 
 ```bash
-npx agent-wrapped                 # published
+npx @nitrimandylis/agent-wrapped  # published (scoped; bare name is taken on npm)
 bun src/cli.ts                    # in the repo
 node dist/cli.js                  # after `bun run build`
 ```

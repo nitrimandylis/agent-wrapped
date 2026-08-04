@@ -83,7 +83,7 @@ function chrome(c: Ctx, input: CardInput) {
         padding: `${Math.round(14 * c.scale)}px ${Math.round(20 * c.scale)}px 0`,
       },
       text("$", { fontSize: size, color: p.accent }),
-      text("npx agent-wrapped", { fontSize: size, color: p.text }),
+      text("npx @nitrimandylis/agent-wrapped", { fontSize: size, color: p.text }),
       text(
         `${shortDate(c.stats.since)} – ${shortDate(c.stats.until)} · ${c.stats.days}d`,
         { fontSize: size, color: p.muted, flex: 1, justifyContent: "flex-end" },

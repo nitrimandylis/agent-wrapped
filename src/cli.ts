@@ -17,7 +17,7 @@ import { resolveTheme, tierFor } from "./themes.ts";
 const HELP = `agent-wrapped — your Claude Code stats as a shareable card
 
 usage
-  npx agent-wrapped [options]
+  npx @nitrimandylis/agent-wrapped [options]
 
 options
   --layout <l>      wide | square | story          (default: square)

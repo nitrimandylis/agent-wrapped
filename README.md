@@ -42,7 +42,7 @@ numbers, so this shows you the five axis bars the total is made of instead, and 
 arithmetic yourself.
 
 ```console
-nick@agent-wrapped:~$ npx agent-wrapped --layout wide --detail full
+nick@agent-wrapped:~$ npx @nitrimandylis/agent-wrapped --layout wide --detail full
 [✓] 87/100 · THE MACHINE · consistency + volume
 [i] your own tooling called Claude 10,123 times without you
 ```
@@ -117,8 +117,11 @@ sessions averaging 73 seconds each.
 Needs Node 20 or newer. Nothing else — no browser, no system binaries.
 
 ```bash
-npx agent-wrapped
+npx @nitrimandylis/agent-wrapped
 ```
+
+The package is scoped because npm considers the bare name too similar to an existing one. Installed
+globally, the command is just `agent-wrapped`.
 
 From source:
 

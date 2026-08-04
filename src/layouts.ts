@@ -33,7 +33,7 @@ export const DETAILS: DetailName[] = ["min", "std", "full"];
  */
 export const MANIFESTS: Record<string, string[][]> = {
   "wide.min": [["score"], ["blurb"]],
-  "wide.std": [["score"], ["blurb"], ["quips"], ["tokens", "sessions", "agents"]],
+  "wide.std": [["score"], ["blurb"], ["quips"], ["tokens", "sessions", "agents", "cost"]],
   // Two columns, because stacking axes under the clock overflows 675 by ~30px.
   "wide.full": [
     ["score"],
