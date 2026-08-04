@@ -3,8 +3,9 @@
  * sane, then render every layout to make sure nothing falls off the bottom.
  * Run with `bun run check`.
  */
+import { BLOCKS } from "./blocks.ts";
 import { measureHeight } from "./card.ts";
-import { CANVASES, DETAILS, LAYOUTS } from "./layouts.ts";
+import { CANVASES, DETAILS, LAYOUTS, MANIFESTS } from "./layouts.ts";
 import { collect, peakHour } from "./parse.ts";
 import { quips } from "./quips.ts";
 import { score } from "./score.ts";
@@ -95,6 +96,11 @@ const base = {
   cost: 1204,
   trend: -6,
 };
+
+// A block no manifest names renders nowhere and nobody notices it is missing.
+const used = new Set(Object.values(MANIFESTS).flat(2));
+const orphans = Object.keys(BLOCKS).filter((name) => !used.has(name));
+if (orphans.length > 0) fail(`block(s) in no layout: ${orphans.join(", ")}`);
 
 console.log("");
 let overflowed = 0;
