@@ -193,6 +193,21 @@ function minePrompt(text: string, mine: Miner): void {
   }
 }
 
+/**
+ * The command name only, never an argument. Nearly every command starts by
+ * changing directory, so `cd x && git status` has to report `git`, otherwise
+ * the histogram just measures how often Claude moved around the filesystem.
+ */
+function bashVerb(command: string): string {
+  for (const part of command.split(/&&|\|\||;|\|/)) {
+    const word = part.trim().split(/\s+/)[0];
+    if (!word || word === "cd" || word.includes("=")) continue; // env prefixes too
+    // A venv interpreter is still python. Report the name, not the install path.
+    return word.includes("/") ? (word.split("/").pop() ?? word) : word;
+  }
+  return "";
+}
+
 /** Tool calls live as blocks inside an assistant message's content array. */
 function mineTools(content: unknown, mine: Miner): void {
   if (!Array.isArray(content)) return;
@@ -207,9 +222,7 @@ function mineTools(content: unknown, mine: Miner): void {
     if (typeof input.file_path === "string") mine.files.add(input.file_path);
 
     if (name === "Bash" && typeof input.command === "string") {
-      // First word only. `git`, `rg`, `bun` is the interesting part; the rest of
-      // the command line is yours and does not belong in a count.
-      const verb = input.command.trim().split(/\s+/)[0];
+      const verb = bashVerb(input.command);
       if (verb) mine.bashVerbs[verb] = (mine.bashVerbs[verb] ?? 0) + 1;
     }
   }
