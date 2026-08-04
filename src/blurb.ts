@@ -6,11 +6,16 @@ import type { Scored } from "./score.ts";
 export type Blurb = { styleName: string; text: string; source: "claude" | "template" };
 
 const STYLE_BY_ARCHETYPE: Record<string, string> = {
-  ORCHESTRATOR: "Agent Wrangler",
-  "HEAVY LIFTER": "High-Volume Operator",
-  METRONOME: "Daily Driver",
-  "DEEP DIVER": "Long-Session Specialist",
-  POLYMATH: "Context Switcher",
+  "THE MACHINE": "Daily High-Volume Driver",
+  "THE ROUNDS": "Everything, Every Day",
+  "THE SHIFT": "Clocks In, Stays Late",
+  "THE DISPATCHER": "Delegates Before Coffee",
+  "THE EXCAVATOR": "One Repo, All The Way Down",
+  "THE SPRAWL": "Many Repos, No Favourites",
+  "THE FOUNDRY": "Runs A Shift Of Agents",
+  "THE OBSESSIVE": "Deep In Several Holes",
+  "THE WAR ROOM": "Long Sessions, Full Team",
+  "AIR TRAFFIC CONTROL": "Everywhere At Once",
 };
 
 /** Always available, needs nothing installed, and never says anything false. */
