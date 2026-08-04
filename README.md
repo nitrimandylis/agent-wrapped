@@ -23,7 +23,7 @@
 
 <img src="https://raw.githubusercontent.com/nitrimandylis/agent-wrapped/main/docs/card-square-full.png" alt="An agent-wrapped card scoring 88/100, archetype THE MACHINE, with five axis bars, an hourly activity chart, and panels for tokens, sessions, subagents and API-rate cost." width="760">
 
-*a real card — `--layout square --detail full --theme magenta`*
+*a real card — `--layout square --detail full` + custom theme TOML*
 
 </div>
 
