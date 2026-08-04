@@ -4,7 +4,7 @@
   "description": "Your Claude Code month in review, as a shareable PNG or SVG. Runs entirely on your machine.",
   "type": "module",
   "bin": {
-    "agent-wrapped": "./dist/cli.js"
+    "agent-wrapped": "dist/cli.js"
   },
   "files": [
     "dist",
