@@ -80,6 +80,22 @@ which you get to read on screen before anything is written.
 The rule I came away with: no marketing CLI gets to read `~/.claude`. Local, open source, and
 inspectable, or it does not run. This is what that looks like.
 
+### A note on the name
+
+npm will not take `agent-wrapped` as a package name. It strips hyphens when comparing, and an
+`agentwrapped` already exists — no relation to this project, and worth knowing about since the names
+collapse to the same string.
+
+That one is published to npm from an `experience@merge.dev` address, which is checkable with
+`npm view agentwrapped maintainers`. Nothing inside the package mentions Merge.dev at all: it brands
+itself as agentwrapped.com, reads your usage through `ccusage`, then POSTs a recap to its own API so it
+can hand you a shareable link. It describes that recap as anonymized, and it may well be. There is no
+public repository, so you cannot open the source and check. It has not been touched since two days
+after it launched.
+
+Which is the whole argument, again. This one is scoped to `@nitrimandylis` because the bare name was
+unavailable, and every line of it is in this repo.
+
 ## 🎴 The card
 
 | | flag | what it actually does |
