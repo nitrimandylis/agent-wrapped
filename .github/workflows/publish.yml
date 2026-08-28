@@ -1,0 +1,46 @@
+# Releases agent-wrapped to npm when a GitHub release is published.
+#
+# Authenticated by OIDC, not a token, so nothing secret is stored in this repo
+# and a release needs neither a local clone nor an OTP. This matters here more
+# than most: the repo is deleted locally after publishing, so a token-based
+# release would mean re-cloning and still having the token months later.
+#
+# Requires a trusted publisher on npmjs.com pointing at this repo, this
+# filename, and environment `npm`.
+name: publish
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write # no OIDC token to present without this
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.14.0" # trusted publishing needs 22.14 or newer
+          registry-url: "https://registry.npmjs.org"
+
+      # The npm bundled with Node 22 predates trusted publishing.
+      - run: npm install -g npm@latest
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      # typecheck only. `bun run check` parses real Claude Code transcripts out
+      # of ~/.claude/projects, which a runner does not have, so it belongs on a
+      # developer machine and not here.
+      - run: bun run typecheck
+
+      # prepack builds dist/, which is gitignored and absent from the checkout.
+      - run: npm publish
