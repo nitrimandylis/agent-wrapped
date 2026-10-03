@@ -1,6 +1,6 @@
 {
   "name": "@nitrimandylis/agent-wrapped",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Your Claude Code month in review, as a shareable PNG or SVG. Runs entirely on your machine.",
   "type": "module",
   "bin": {
