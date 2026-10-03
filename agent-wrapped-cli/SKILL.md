@@ -43,8 +43,10 @@ machine with neither font installed.
 
 Other flags: `--days <n>`, `--theme <name|palette.toml>`, `--handle <name>`, `--out <path>`,
 `--no-history`, `--deep`.
+Without `--out`, a single card goes to `./agent-wrapped-<month>-<layout>-<detail>.<ext>` and `--all` goes to
+`./agent-wrapped-<YYYY-MM>/`.
 
-The name on the card defaults to the GitHub login in `~/.config/gh/hosts.yml`, then the system username.
+The name on the card defaults to the GitHub login in `~/.config/gh/hosts.yml` (or `$GH_CONFIG_DIR/hosts.yml`), then the system username.
 The review gate prints it and says which one it used, so check there before telling the user what their
 card will say.
 

@@ -110,6 +110,10 @@ unavailable, and every line of it is in this repo.
 | 04 | **`--all`** | writes all nine combinations to a directory, for when you cannot decide |
 | 05 | **`--theme`** | six built-in accents, cold to hot, picked by your score — or hand it a `palette.toml` |
 | 06 | **`--json`** | the whole breakdown as machine-readable output, writes no files |
+| 07 | **`--days`** | window size in days, default 30 (Claude Code keeps about 30) |
+| 08 | **`--out`** | output file, or a directory with `--all` |
+
+Without `--out`, a single card is written to `./agent-wrapped-<month>-<layout>-<detail>.<ext>`, for example `agent-wrapped-2026-10-square-std.png`. `--all` without `--out` writes to `./agent-wrapped-<YYYY-MM>/`, one `<layout>-<detail>.<ext>` file per combination.
 
 ## 🔢 The score
 
@@ -158,7 +162,7 @@ at all.
 
 The name defaults to your GitHub login, read out of `gh`'s own config file on disk rather than from the
 GitHub API — a lookup that phoned home would make the sentence above this one false. With no `gh`, it
-falls back to your system username. `--handle <name>` overrides both.
+falls back to your system username. `--handle <name>` overrides both. `gh` config is read from `~/.config/gh/hosts.yml`, or from `$GH_CONFIG_DIR/hosts.yml` when that variable is set.
 
 ## 🔩 Under the hood
 
@@ -206,7 +210,7 @@ point of the thing:
 - Nothing is scheduled, no launch agent is installed, and no network call is made at any point. `ccusage`
   runs with `--offline`.
 
-It is about 2,300 lines of TypeScript across thirteen files. Read it before you run it — that being the
+It is about 2,400 lines of TypeScript across fourteen files. Read it before you run it — that being the
 advice that produced this repo in the first place.
 
 ---

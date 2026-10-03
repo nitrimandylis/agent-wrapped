@@ -33,6 +33,8 @@ options
   --handle <name>   name on the card, default your GitHub login when gh is
                     set up, otherwise your system username
   --out <path>      output file, or directory with --all
+                    (default: ./agent-wrapped-<month>-<layout>-<detail>.<ext>,
+                    or ./agent-wrapped-<month>/ with --all)
   --json            print the full stats and score breakdown, write nothing
   --no-history      skip the monthly snapshot in ~/.agent-wrapped
   --yes             skip the review step and write immediately
